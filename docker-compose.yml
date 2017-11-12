@@ -1,0 +1,32 @@
+version: '2'
+services:
+  node:
+    image: "node:9"
+    user: "node"
+    working_dir: /home/node/app
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./:/home/node/app
+    expose:
+      - "3000"
+    ports:
+      - "3000:3000"
+    command: "node ./server/app.js"
+
+  nginx:
+    image: nginx
+    ports: 
+      - "8080:80"
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./public:/var/www/openaid:ro
+    links:
+      - node
+
+
+  #  mongodb:
+  #  image: mongo
+  #  ports:
+  #    - "27017:27017"
+
