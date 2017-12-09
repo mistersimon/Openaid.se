@@ -1,83 +1,39 @@
-<!http://bl.ocks.org/tomschulze/961d57bd1bbd2a9ef993f2e8645cb8d2>
 <!DOCTYPE html>
 <meta charset="utf-8">
 <style>
-  path {
-    stroke: white;
-    stroke-width: 0.5px;
-  }
-  /* On mouse hover, lighten state color */
-  path:hover {
-      fill-opacity: .7;
-  }
+    body {
+        font: 12px sans-serif;
+    }
 
+    path {
+        stroke-width: 1px;
+        stroke: white;
+        cursor: pointer;
+    }
+
+    path:hover,
+    path.highlighted {
+        fill: tomato;
+    }
+
+    div.tooltip {
+        position: absolute;
+        background-color: white;
+        border: 1px solid black;
+        color: black;
+        font-weight: bold;
+        padding: 4px 8px;
+        display: none;
+    }
 </style>
 
 <body>
-  <script src="http://d3js.org/d3.v4.min.js"></script>
-  <script src="https://unpkg.com/topojson@3"></script>
-  <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
-  <script src="https://d3js.org/d3-scale.v1.min.js"></script>
-  
-  <div id="map"></div>
+    <script src="http://d3js.org/d3.v4.min.js"></script>
+    <script src="https://unpkg.com/topojson@3"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <script src="https://d3js.org/d3-scale.v1.min.js"></script>
 
-  <script>
-    var width = parseInt(d3.select('#map').style('width'))
-        height = width/2;
-    
-    var color = d3.scaleLinear()
-                    .domain(d3.range(0,10))
-                    .range(d3.schemeBlues[9]);
-
-    var projection = d3.geoMercator()
-                .translate([(width/2), (height/2)])
-                .scale( width / 2 / Math.PI);
-
-
-    // Population Data
-    var popData = d3.map();
-
-    // Converts GeoJSON Paths to svg
-    var path = d3.geoPath().projection(projection);
-
-    var svg = d3.select("body").append("svg")
-                .attr("width",width)
-                .attr("height",width);
-  
-    var g = svg.append("g");
-    
-    // Start asynchronous tasks/
-    d3.queue()
-        .defer(d3.json, "https://unpkg.com/world-atlas@1/world/50m.json")
-        .defer(d3.csv, "./countries.csv", function(d) {
-       // .defer(d3.tsv, "./world_population.tsv", function(d) {
-          popData.set(d.id, +d.population);
-        })
-        .await(ready);
-    
-
-    // load and display the World
-    function ready(error, topology) {
-      if (error) throw error;
-      
-      // Convert to geojson on client.      
-      // Plot only the countries layer
-      var geojson = topojson.feature(topology, topology.objects.countries);
-
-      // Plot geoson using svg
-      svg.selectAll("path")
-        .data(geojson.features)
-        .enter()
-        .append("path")
-        .attr("d", path)
-        .attr("fill", "white")
-        .attr("fill", function(d) {
-          var value = popData.get(d.id);
-          console.log(value)
-          return (value != 0 ? color(value) : "lightblue");
-        })
-
-    }
-  </script>
+    AID in 2016
+    <div id='map'></div>
+    <script type='text/javascript' src="./map.js"></script>
 </body>
-</html>

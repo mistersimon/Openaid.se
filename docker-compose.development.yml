@@ -1,0 +1,41 @@
+version: '2'
+services:
+  node:
+    image: "node:9"
+    user: "node"
+    working_dir: /home/node/app
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./:/home/node/app
+    expose:
+      - "3000"
+    ports:
+      - "3000:3000"
+    command: "npm run autostart"
+    links:
+      - db
+
+  nginx:
+    image: nginx
+    ports: 
+      - "8080:80"
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./public:/var/www/openaid:ro
+    links:
+      - node
+
+  db:
+    image: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+    ports:
+      - "3306:3306"
+
+  #  mongodb:
+  #  image: mongo
+  #  ports:
+  #    - "27017:27017"
+
