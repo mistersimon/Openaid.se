@@ -1,10 +1,11 @@
 'use strict'
-
 const fs = require('fs')
 const request = require('request')
 const xmlNodes = require('xml-nodes')
 const xml2js = require('xml2js')
 const mysql = require('mysql')
+
+const {cleanActivity} = require('./cleaner.js')
 
 // Constants
 const DB_NAME = 'openaid'
@@ -24,8 +25,9 @@ const url = 'http://datastore.iatistandard.org/api/1/access/activity.xml' +
 
 // const cachePath = 'iati.xml'
 // const cachePath = 'unknown.xml'
-const cachePath = './data/activity.xml'
-// const cachePath = './data/act900.xml'
+//const cachePath = './data/activity.xml'
+// const cachePath = './cache/act3.xml'
+const cachePath = './db/cache/act3.xml'
 
 const dbconnection = mysql.createConnection({
   host: 'localhost',
@@ -43,7 +45,7 @@ if (fs.existsSync(cachePath)) {
   dataStream = fs.createReadStream(cachePath, { encoding: 'utf8' })
 } else {
   console.log('No cache file found; Pulling from iati')
-  dataStream = request(url)
+  // dataStream = request(url)
 }
 
 let counter = 0
@@ -68,7 +70,8 @@ dataStream
         if (error) throw error
         const activity = result['iati-activity']
         counter += 1
-        await mangleActivity(activity)
+        cleanActivity(activity)
+        // await mangleActivity(activity)
       })
     })
     .on('end', () => {
@@ -78,6 +81,7 @@ dataStream
       })
     })
 
+
 /**
  * TODO: Process all the fields
  * (04/12/17) Simon Lee
@@ -85,54 +89,14 @@ dataStream
 const mangleActivity = (activity) => {
     // console.log(JSON.stringify(activity, null, 2))
     // console.log(activity)
-  const identifier = activity['iati-identifier'][0]
-  const reportingOrg = activity['reporting-org'][0]['$']['ref']
-    // console.log('========' + identifier + '========')
 
   let message = ''
 
   let recipientCountry
   let recipientCountryContribution
-  try {
-    recipientCountry = activity['recipient-country'][0]['$']['code']
-  } catch (error) {
-    message += 'recipientCountry, '
-    recipientCountry = null
-  }
-  try {
-    recipientCountryContribution = activity['recipient-country'][0]['$']['percentage']
-  } catch (error) {
-    message += 'recipient_country_contribution, '
-    recipientCountryContribution = null
-  }
 
   const transactions = []
   let transactionSum = 0
-  try {
-    transactionSum = activity['transaction'].reduce((sum, transaction) => {
-            // console.log(JSON.stringify(transaction, null, 2))
-            // console.log(transaction['transaction-type'][0]['$']['code'])
-
-      // let code = transaction['transaction-type'][0]['$']['code']
-      let value = parseFloat(transaction['value'][0]['_'])
-      let date = (transaction['value'][0]['$']['value-date'])
-
-      transactions.push([identifier, value, date])
-
-      sum += parseFloat(transaction['value'][0]['_'])
-
-      return sum
-    }, 0)
-  } catch (error) {
-/**
- * TODO: Do not push N/A row.
- * There is no need to push an empty row, just push nothing
- * (04/12/17) Simon Lee
- */
-    message += 'transaction'
-    transactionSum = null
-    transactions.push([identifier, null, null])
-  }
 
   const activities = [[identifier, reportingOrg, recipientCountry, recipientCountryContribution, transactionSum]]
 
