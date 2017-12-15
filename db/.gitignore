@@ -1,2 +1,5 @@
 # Cache Files
 cache/
+
+# Database Files
+data/
