@@ -2,8 +2,9 @@
  * Clean a Item from xml
  */
 const cleanItem = (dirty, clean, key, parser) => {
-  const value = parser(dirty[key][0])
+  let value = dirty[key]
   if (value) {
+    value = parser(dirty[key][0])
     clean[key] = value
   }
 }
@@ -20,9 +21,6 @@ const cleanArray = (dirty, clean, key, parser) => {
     }, [])
   }
 }
-/**
- * Clean a node containing many children
- */
 
 /**
  * Takes the dirty output from the xml parser and outputs clean json
@@ -62,6 +60,21 @@ exports.cleanActivity = (activity) => {
     }
   })
 
+  // This snippet is not working. Throws unhandled rejection promise
+  // console.log(activity['country-budget-items'])
+  // addIfExists('country-budget-items', (item) => {
+  //   if (item['budget-item']) {
+  //     return {
+  //       'vocabulary': item['$']['vocabulary'],
+  //       'budget-item': {
+  //         'code': item['budget-item'][0]['$']['code'],
+  //         'percentage': parseInt(item['budget-item'][0]['$']['percentage']),
+  //         'narrative': item['budget-item'][0]['description'][0]['narrative'][0]
+  //       }
+  //     }
+  //   }
+  // })
+
   // TODO - Not very proud of this
   addIfExists('crs-add', (item) => {
     let obj = {}
@@ -83,8 +96,8 @@ exports.cleanActivity = (activity) => {
   addIfExistsArray('participating-org', (item) => {
     return {
       'ref': item['$']['ref'],
-      'type': parseInt(item['$']['type']),
-      'role': parseInt(item['$']['role']),
+      'type': item['$']['type'],
+      'role': item['$']['role'],
       'narrative': item['narrative'][0]
     }
   })
@@ -99,7 +112,7 @@ exports.cleanActivity = (activity) => {
   addIfExistsArray('recipient-country', (item) => {
     return {
       'code': item['$']['code'],
-      'percentage': item['$']['percentage'],
+      'percentage': parseInt(item['$']['percentage']),
       'narrative': item['narrative'][0]
     }
   })
@@ -148,9 +161,11 @@ exports.cleanActivity = (activity) => {
   })
 
   // Delete all of the used keys
+  // TODO - Delete only the children keys
   const uselessKeys = ['contact-info', '$']
   for (let key of Object.keys(clean).concat(uselessKeys)) {
     delete activity[key]
   }
-  console.log(JSON.stringify(activity, null, 2))
+  clean['other'] = activity
+  return clean
 }

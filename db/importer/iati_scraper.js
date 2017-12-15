@@ -4,30 +4,31 @@ const request = require('request')
 const xmlNodes = require('xml-nodes')
 const xml2js = require('xml2js')
 const mysql = require('mysql')
+const util = require('util')
+const parseXML = util.promisify(xml2js.parseString)
 
 const {cleanActivity} = require('./cleaner.js')
+const {insertActivity} = require('./inserter.js')
 
 // Constants
 const DB_NAME = 'openaid'
 const TB_ACT = 'activity'
 const TB_TRN = 'transaction'
 
+// Stream ignores offset and limit
 const reportingOrg = 'SE-0'
 const offset = 50000
-const limit = 3
-const stream = 'True'
+const limit = 50
+const stream = 'False'
 
 const url = 'http://datastore.iatistandard.org/api/1/access/activity.xml' +
-    '?stream=' + stream +
-    '&reporting-org=' + reportingOrg +
+    '?reporting-org=' + reportingOrg +
+    // '&stream=' + stream +
     '&offset=' + offset +
     '&limit=' + limit
 
-// const cachePath = 'iati.xml'
-// const cachePath = 'unknown.xml'
-//const cachePath = './data/activity.xml'
-// const cachePath = './cache/act3.xml'
-const cachePath = './db/cache/act3.xml'
+// const cachePath = './db/cache/act900.xml'
+// const cachePath = './db/cache/activity.xml'
 
 const dbconnection = mysql.createConnection({
   host: 'localhost',
@@ -36,98 +37,60 @@ const dbconnection = mysql.createConnection({
 })
 
 /**
- * TODO: Check if streaming actually works
- * (04/12/17) Simon Lee
+ * TODO: Streaming doesn't quite work. Event timings are different to readstream
+ * (15/12/17) Simon Lee
  */
 var dataStream
-if (fs.existsSync(cachePath)) {
+if (typeof cachePath !== 'undefined' && fs.existsSync(cachePath)) {
   console.log('Cache file found')
   dataStream = fs.createReadStream(cachePath, { encoding: 'utf8' })
 } else {
   console.log('No cache file found; Pulling from iati')
-  // dataStream = request(url)
+  console.log(url)
+  dataStream = request(url)
+}
+
+const onStart = async () => {
+  // Open db connection
+  dbconnection.connect((error) => {
+    if (error) throw error
+    console.log('Connected to mysql');
+  })
+
+  // Change to correct database
+  dbconnection.query(`USE ${DB_NAME}`, function (error, res) {
+    if (error) throw error
+    // console.log("Changed database");
+  })
 }
 
 let counter = 0
+
+// fs and request have different start events. Attach listners for both.
 dataStream
-    .on('open', () => {
-        // // Open db connection
-      dbconnection.connect((error) => {
-        if (error) throw error
-            // console.log('Connected to mysql');
-      })
+    .on('socket', onStart)
+    .on('open', onStart)
 
-        // // Change to correct database
-      dbconnection.query(`USE ${DB_NAME}`, function (error, res) {
-        if (error) throw error
-            // console.log("Changed database");
-      })
-    })
-    .pipe(xmlNodes('iati-activity')) // Get each iati-activity node
-    .on('data', (data) => {
+dataStream
+  .pipe(xmlNodes('iati-activity')) // Get each iati-activity node
+  .on('data', async (data) => {
+    try {
       const xml = data.toString('utf8')
-      xml2js.parseString(xml, async (error, result) => {
-        if (error) throw error
-        const activity = result['iati-activity']
-        counter += 1
-        cleanActivity(activity)
-        // await mangleActivity(activity)
-      })
-    })
-    .on('end', () => {
-      dbconnection.end((error) => {
-        if (error) throw error
-            // console.log('Connection Closed')
-      })
-    })
-
-
-/**
- * TODO: Process all the fields
- * (04/12/17) Simon Lee
- */
-const mangleActivity = (activity) => {
-    // console.log(JSON.stringify(activity, null, 2))
-    // console.log(activity)
-
-  let message = ''
-
-  let recipientCountry
-  let recipientCountryContribution
-
-  const transactions = []
-  let transactionSum = 0
-
-  const activities = [[identifier, reportingOrg, recipientCountry, recipientCountryContribution, transactionSum]]
-
-/**
- * TODO: Create array of mysql queries to loop over
- * (04/12/17) Simon Lee
- */
-  let sql = ''
-  let values = ''
-  // Insert transactions into db
-  sql = `INSERT INTO ${TB_TRN} (iati_id, value, date) VALUES ?`
-  values = transactions
-
-  dbconnection.query(sql, [values], function (error, res) {
-    if (error) throw error
-  })
-
-    // Insert activities into db
-  sql = `INSERT INTO ${TB_ACT} (iati_id, reportingOrg, recipientCountry,
-               recipient_country_contribution, transactionSum) VALUES ?`
-  values = activities
-
-  dbconnection.query(sql, [values], function (error, res) {
-    if (error) {
-      console.log(values)
+      let json = await parseXML(xml)
+      const activity = cleanActivity(json['iati-activity'])
+      await insertActivity(dbconnection, activity)
+    } catch (error) {
       throw error
+    }
+    if (++counter % 1 === 0) {
+      process.stdout.write('\rProcessed:' + counter)
     }
   })
 
-    // transactions
-    // activities
-  if (message.length !== 0) message = 'N/A on: ' + message
-  console.log('Processed: ', counter, ' | ', identifier, message)
-}
+dataStream
+  .on('end', () => {
+    dbconnection.end((error) => {
+      if (error) throw error
+      console.log('Connection Closed')
+    })
+  })
