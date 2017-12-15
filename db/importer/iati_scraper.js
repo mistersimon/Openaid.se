@@ -28,9 +28,10 @@ const url = 'http://datastore.iatistandard.org/api/1/access/activity.xml' +
     '&limit=' + limit
 
 // const cachePath = './db/cache/act900.xml'
-// const cachePath = './db/cache/activity.xml'
+const cachePath = './db/cache/activity.xml'
 
 const dbconnection = mysql.createConnection({
+  multipleStatements: true,
   host: 'localhost',
   user: 'root',
   password: 'example'

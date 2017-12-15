@@ -19,7 +19,6 @@ const connection = mysql.createConnection({
   host: 'localhost',
   user: 'root',
   password: 'example',
-  database: 'openaid'
 })
 
 connection.connect((err) => {
@@ -29,14 +28,9 @@ connection.connect((err) => {
 
 let queries = []
 
-/**
- * TODO: Update schema
- * Need to make some columns NOT NULL, i.e. iati_id and reporting_org.
- * (04/12/17) Simon Lee
- */
 
-// queries.push(`CREATE DATABASE IF NOT EXISTS ${DB_NAME}`)
-// queries.push(`USE ${DB_NAME}`)
+queries.push(`CREATE DATABASE IF NOT EXISTS ${DB_NAME}`)
+queries.push(`USE ${DB_NAME}`)
 const TB_ACT = 'activity'
 queries.push(`DROP TABLE IF EXISTS ${TB_ACT}`)
 queries.push(

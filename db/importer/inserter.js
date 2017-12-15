@@ -93,16 +93,19 @@ exports.insertActivity = async (dbconnection, activity) => {
   const queryPromises = []
   const fn = util.promisify(dbconnection.query).bind(dbconnection)
 
+  // Lets try building one long query
+
+  let query = ''
+  let values = []
   try {
     // Insert all values into various tables
     for (const [table, records] of Object.entries(inserts)) {
-      const sql = `INSERT INTO ${table} SET ?`
-
       for (const record of records) {
-        queryPromises.push(fn(sql, record))
+        query = query + `INSERT INTO ${table} SET ?;`
+        values.push(record)
       }
     }
-    return Promise.all(queryPromises)
+    return fn(query, values)
   } catch (error) {
     throw error
   }
