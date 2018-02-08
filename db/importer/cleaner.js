@@ -15,10 +15,7 @@ const cleanItem = (dirty, clean, key, parser) => {
 const cleanArray = (dirty, clean, key, parser) => {
   const array = dirty[key]
   if (array) {
-    clean[key] = array.reduce((list, item) => {
-      list.push(parser(item))
-      return list
-    }, [])
+    clean[key] = array.map(item => parser(item))
   }
 }
 
@@ -28,10 +25,9 @@ const cleanArray = (dirty, clean, key, parser) => {
  * @param {object} activity - Activity object
   // http://iatistandard.org/202/schema/downloads/iati-activities-schema.xsd
  */
-exports.cleanActivity = (activity) => {
+exports.cleanActivity = (activity, encoding, done) => {
   // cleaned activity
   let clean
-
   // Curry clean item and array
   const addIfExists = (key, parser) => cleanItem(activity, clean, key, parser)
   const addIfExistsArray = (key, parser) => cleanArray(activity, clean, key, parser)
@@ -167,5 +163,7 @@ exports.cleanActivity = (activity) => {
     delete activity[key]
   }
   clean['other'] = activity
-  return clean
+
+  // Add data back to stream
+  done(null, clean)
 }

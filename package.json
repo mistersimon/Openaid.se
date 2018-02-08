@@ -4,9 +4,16 @@
 	"description": "",
 	"main": "app.js",
 	"dependencies": {
+		"async": "^2.6.0",
 		"express": "^4.16.2",
+		"highland": "^2.11.1",
 		"mysql": "^2.15.0",
+		"mysql2": "^1.5.1",
 		"request": "^2.83.0",
+		"sequelize": "^4.28.6",
+		"sync": "^0.2.5",
+		"through2": "^2.0.3",
+		"through2-batch": "^1.1.0",
 		"xml-nodes": "^0.1.5",
 		"xml2js": "^0.4.19"
 	},

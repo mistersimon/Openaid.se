@@ -1,5 +1,5 @@
-const util = require('util')
-exports.insertActivity = async (dbconnection, activity) => {
+// const util = require('util')
+exports.createInsert = (activity, encoding, done) => {
   // console.log(JSON.stringify(activity, null, 2))
   // console.log(activity)
 
@@ -90,23 +90,5 @@ exports.insertActivity = async (dbconnection, activity) => {
     }
   })
 
-  const queryPromises = []
-  const fn = util.promisify(dbconnection.query).bind(dbconnection)
-
-  // Lets try building one long query
-
-  let query = ''
-  let values = []
-  try {
-    // Insert all values into various tables
-    for (const [table, records] of Object.entries(inserts)) {
-      for (const record of records) {
-        query = query + `INSERT INTO ${table} SET ?;`
-        values.push(record)
-      }
-    }
-    return fn(query, values)
-  } catch (error) {
-    throw error
-  }
+  done(null, inserts)
 }
